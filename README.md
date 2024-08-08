@@ -16,14 +16,13 @@ A monorepo is simply a collection of would-be repositories in a single repositor
 - `.gitconfig` for the latest git features
 - Required workflow runs including `pr-watcher` workflow
 - Advanced security features enabled like verified commits, branch protection rules etc.
-- npm scripts for easy access for easy access to features and maintaining monorepo
+- npm scripts for easy access to features and maintaining monorepo
 
 ## Getting Started
 
 ### Requirements
 
 - [GH CLI](https://cli.github.com/)
-- [Node.js](https://nodejs.org/en/)
 - [npm](https://www.npmjs.com/)
 - [Docker](https://www.docker.com/)
 - [VSCode](https://code.visualstudio.com/)
@@ -38,6 +37,48 @@ gh api \
   /repos/arifbalik/monorepo/generate \
    -f "owner=your-username" -f "name=my-monorepo" -f "description=A test with monorepos"
 ```
+
+### Setup
+
+After you've created your own monorepo, you can clone it to your local machine and run the following commands:
+
+```bash
+npm install
+```
+
+this will install all the dependencies for the monorepo.
+
+From this point on I recommend working in a devcontainer, make sure docker deamon is running and then run the following commands:
+
+```bash
+npm run create-volume
+npm run dev
+```
+
+This will create a volume for the devcontainer and start the devcontainer. Press `Ctrl+Shift+P` and select `Remote-Containers: Attach to Running Container...` to run the devcontainer.
+
+### Devcontainer
+
+Inside the devcontainer volume clone your repo and initialize;
+
+```bash
+git clone <your-repo-url>
+cd <your-repo-name>
+npm install
+```
+
+### npm scripts
+
+There are a few npm scripts that you can use to maintain your monorepo:
+
+- `npm run reset-repo` resets the repository to the default settings
+- `npm run signingkey path/to/signingkey.pub` configures git to use ssh signing key to sign commits
+- `npm run commitlint` runs commitlint on the repository
+- `npm run lint` runs megalinter on the repository
+- `npm run create-volume` creates a volume for the devcontainer (if doesn't exist)
+- `npm run dev` starts the devcontainer (builds the image if doesn't exist)
+  - optional: `npm run dev -- --remove-existing-container` rebuilds the image and starts the devcontainer
+- `npm run dev-shell <command>` starts a shell in the devcontainer and runs the command
 
 > [!NOTE]
 > Self hosted runners are not enabled by default. Please see [open pull request #8](https://github.com/arifbalik/monorepo/pull/8) to see how to enable them.
