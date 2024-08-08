@@ -40,4 +40,4 @@ gh api \
 ```
 
 > [!NOTE]
-> Self hosted runners are not enabled by default. Please see open pull requests to see how to enable them.
+> Self hosted runners are not enabled by default. Please see open pull request #8 to see how to enable them.
