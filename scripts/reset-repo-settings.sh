@@ -5,9 +5,6 @@ gh api \
   -H "Accept: application/vnd.github+json" \
   -H "X-GitHub-Api-Version: 2022-11-28" \
   'repos/{owner}/{repo}' \
-  -f "name=monorepo" \
-  -f "description=Personal monorepo playground" \
-  -f "homepage=" \
   -F "private=false" \
   -f "visibility=public" \
   -f "security_and_analysis[secret_scanning][status]"=enabled \
@@ -16,7 +13,7 @@ gh api \
   -F "has_issues=true" \
   -F "has_projects=true" \
   -F "has_wiki=true" \
-  -F "is_template=true" \
+  -F "is_template=false" \
   -f "default_branch=main" \
   -F "allow_squash_merge=true" \
   -F "allow_merge_commit=false" \
@@ -26,10 +23,31 @@ gh api \
   -F "allow_update_branch=true" \
   -f "squash_merge_commit_title=COMMIT_OR_PR_TITLE" \
   -f "squash_merge_commit_message=COMMIT_MESSAGES" \
-  -f "merge_commit_title=PR_TITLE" \
-  -f "merge_commit_message=PR_BODY" \
   -F "archived=false" \
-  -F "web_commit_signoff_required=true"
+  -F "web_commit_signoff_required=true" \
+  -f "name=self-monorepo" \
+  -f "description=Personal monorepo playground" \
+  -f "homepage=arifbalik.github.io/self-monorepo/"
+
+gh api \
+  -H "Accept: application/vnd.github+json" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+      repos/{owner}/{repo}/pages > /dev/null 2>&1
+
+      if [ $? -eq 0 ]; then
+        gh api \
+        --method DELETE \
+        -H "Accept: application/vnd.github+json" \
+        -H "X-GitHub-Api-Version: 2022-11-28" \
+        'repos/{owner}/{repo}/pages'
+      fi
+
+gh api \
+  --method POST \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  'repos/{owner}/{repo}/pages' \
+   -f "source[branch]=main" -f "source[path]=/"
 
 ruleset_name="default ruleset"
 rulesets=$(gh api 'repos/{owner}/{repo}/rulesets')
