@@ -1,53 +1,47 @@
 #!/bin/sh
 
-gh api \
-  --method PATCH \
-  -H "Accept: application/vnd.github+json" \
-  -H "X-GitHub-Api-Version: 2022-11-28" \
-  'repos/{owner}/{repo}' \
-  -F "private=false" \
-  -f "visibility=public" \
-  -f "security_and_analysis[secret_scanning][status]"=enabled \
-  -f "security_and_analysis[secret_scanning_push_protection][status]"=enabled \
-  -f "security_and_analysis[secret_scanning_non_provider_patterns][status]"=enabled \
-  -F "has_issues=true" \
-  -F "has_projects=true" \
-  -F "has_wiki=true" \
-  -F "is_template=false" \
-  -f "default_branch=main" \
-  -F "allow_squash_merge=true" \
-  -F "allow_merge_commit=false" \
-  -F "allow_rebase_merge=false" \
-  -F "allow_auto_merge=false" \
-  -F "delete_branch_on_merge=true" \
-  -F "allow_update_branch=true" \
-  -f "squash_merge_commit_title=COMMIT_OR_PR_TITLE" \
-  -f "squash_merge_commit_message=COMMIT_MESSAGES" \
-  -F "archived=false" \
-  -F "web_commit_signoff_required=true" \
-  -f "name=self-monorepo" \
-  -f "description=Personal monorepo playground" \
-  -f "homepage=arifbalik.github.io/self-monorepo/"
-
-gh api \
-  -H "Accept: application/vnd.github+json" \
-    -H "X-GitHub-Api-Version: 2022-11-28" \
-      repos/{owner}/{repo}/pages > /dev/null 2>&1
-
-      if [ $? -eq 0 ]; then
-        gh api \
-        --method DELETE \
-        -H "Accept: application/vnd.github+json" \
-        -H "X-GitHub-Api-Version: 2022-11-28" \
-        'repos/{owner}/{repo}/pages'
-      fi
-
-gh api \
-  --method POST \
-  -H "Accept: application/vnd.github+json" \
-  -H "X-GitHub-Api-Version: 2022-11-28" \
-  'repos/{owner}/{repo}/pages' \
-   -f "source[branch]=main" -f "source[path]=/"
+repo_settings='{
+  "name": "self-monorepo",
+  "description": "Personal monorepo playground",
+  "homepage": "arifbalik.github.io/self-monorepo/",
+  "private": false,
+  "visibility": "public",
+  "security_and_analysis": {
+    "secret_scanning": {
+      "status": "enabled"
+    },
+    "secret_scanning_push_protection": {
+      "status": "enabled"
+    },
+    "secret_scanning_non_provider_patterns": {
+      "status": "enabled"
+    },
+    "dependabot_security_updates": {
+      "status": "enabled"
+    },
+    "secret_scanning_non_provider_patterns": {
+      "status": "enabled"
+    },
+    "secret_scanning_validity_checks": {
+      "status": "enabled"
+    }
+  },
+  "has_issues": true,
+  "has_projects": true,
+  "has_wiki": true,
+  "is_template": false,
+  "default_branch": "main",
+  "allow_squash_merge": true,
+  "allow_merge_commit": false,
+  "allow_rebase_merge": false,
+  "allow_auto_merge": false,
+  "delete_branch_on_merge": true,
+  "allow_update_branch": true,
+  "squash_merge_commit_title": "COMMIT_OR_PR_TITLE",
+  "squash_merge_commit_message": "COMMIT_MESSAGES",
+  "archived": false,
+  "web_commit_signoff_required": true
+}'
 
 ruleset_name="default ruleset"
 rulesets=$(gh api 'repos/{owner}/{repo}/rulesets')
@@ -113,6 +107,32 @@ rules='{
   ]
 }'
 
+gh api \
+  --method PATCH \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  'repos/{owner}/{repo}' --input - <<< "$repo_settings"
+
+gh api \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  repos/{owner}/{repo}/pages > /dev/null 2>&1
+
+if [ $? -eq 0 ]; then
+  gh api \
+    --method DELETE \
+    -H "Accept: application/vnd.github+json" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    'repos/{owner}/{repo}/pages'
+fi
+
+gh api \
+  --method POST \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  'repos/{owner}/{repo}/pages' \
+   -f "source[branch]=main" -f "source[path]=/"
+
 if [ -n "$ruleset_id" ]; then
   gh api \
   --method DELETE \
@@ -121,8 +141,8 @@ if [ -n "$ruleset_id" ]; then
   'repos/{owner}/{repo}/rulesets/'"$ruleset_id"
 fi
 
-echo "$rules" | gh api \
+gh api \
   --method POST \
   -H "Accept: application/vnd.github+json" \
   -H "X-GitHub-Api-Version: 2022-11-28" \
-  'repos/{owner}/{repo}/rulesets' --input -
+  'repos/{owner}/{repo}/rulesets' --input - <<< "$rules"
