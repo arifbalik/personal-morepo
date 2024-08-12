@@ -1,5 +1,12 @@
 #!/bin/sh
 
+# shellcheck disable=SC2086
+
+# Common headers and endpoint
+headers="-H Accept:application/vnd.github+json -H X-GitHub-Api-Version:2022-11-28"
+repo_endpoint="repos/{owner}/{repo}"
+
+# Repository settings
 repo_settings='{
   "name": "self-monorepo",
   "description": "Personal monorepo playground",
@@ -11,9 +18,6 @@ repo_settings='{
       "status": "enabled"
     },
     "secret_scanning_push_protection": {
-      "status": "enabled"
-    },
-    "secret_scanning_non_provider_patterns": {
       "status": "enabled"
     },
     "dependabot_security_updates": {
@@ -43,10 +47,9 @@ repo_settings='{
   "web_commit_signoff_required": true
 }'
 
+# Ruleset settings
 ruleset_name="default ruleset"
-rulesets=$(gh api 'repos/{owner}/{repo}/rulesets')
-ruleset_id=$(echo "$rulesets" | jq -r ".[] | select(.name == \"$ruleset_name\") | .id")
-# shellcheck disable=SC2089
+ruleset_id=$(gh api "$repo_endpoint/rulesets" | jq -r ".[] | select(.name == \"$ruleset_name\") | .id")
 rules='{
   "name": "'$ruleset_name'",
   "target": "branch",
@@ -54,21 +57,13 @@ rules='{
   "conditions": {
     "ref_name": {
       "exclude": [],
-      "include": [
-        "~DEFAULT_BRANCH"
-      ]
+      "include": ["~DEFAULT_BRANCH"]
     }
   },
   "rules": [
-    {
-      "type": "deletion"
-    },
-    {
-      "type": "non_fast_forward"
-    },
-    {
-      "type": "required_signatures"
-    },
+    {"type": "deletion"},
+    {"type": "non_fast_forward"},
+    {"type": "required_signatures"},
     {
       "type": "pull_request",
       "parameters": {
@@ -85,15 +80,9 @@ rules='{
         "strict_required_status_checks_policy": false,
         "do_not_enforce_on_create": false,
         "required_status_checks": [
-          {
-            "context": "check-pr-size"
-          },
-          {
-            "context": "MegaLinter"
-          },
-          {
-            "context": "commitlint"
-          }
+          {"context": "check-pr-size"},
+          {"context": "MegaLinter"},
+          {"context": "commitlint"}
         ]
       }
     }
@@ -107,42 +96,19 @@ rules='{
   ]
 }'
 
-gh api \
-  --method PATCH \
-  -H "Accept: application/vnd.github+json" \
-  -H "X-GitHub-Api-Version: 2022-11-28" \
-  'repos/{owner}/{repo}' --input - <<< "$repo_settings"
+# Apply repo settings
+echo "$repo_settings" | gh api --method PATCH $headers "$repo_endpoint" --input -
 
-gh api \
-  -H "Accept: application/vnd.github+json" \
-  -H "X-GitHub-Api-Version: 2022-11-28" \
-  repos/{owner}/{repo}/pages > /dev/null 2>&1
-
-if [ $? -eq 0 ]; then
-  gh api \
-    --method DELETE \
-    -H "Accept: application/vnd.github+json" \
-    -H "X-GitHub-Api-Version: 2022-11-28" \
-    'repos/{owner}/{repo}/pages'
+# Check and configure GitHub Pages
+if ! gh api $headers "$repo_endpoint/pages"; then
+  gh api --method DELETE $headers "$repo_endpoint/pages"
 fi
 
-gh api \
-  --method POST \
-  -H "Accept: application/vnd.github+json" \
-  -H "X-GitHub-Api-Version: 2022-11-28" \
-  'repos/{owner}/{repo}/pages' \
-   -f "source[branch]=main" -f "source[path]=/"
+gh api --method POST $headers "$repo_endpoint/pages" -f "source[branch]=main" -f "source[path]=/"
 
+# Apply ruleset
 if [ -n "$ruleset_id" ]; then
-  gh api \
-  --method DELETE \
-  -H "Accept: application/vnd.github+json" \
-  -H "X-GitHub-Api-Version: 2022-11-28" \
-  'repos/{owner}/{repo}/rulesets/'"$ruleset_id"
+  gh api --method DELETE $headers "$repo_endpoint/rulesets/$ruleset_id"
 fi
 
-gh api \
-  --method POST \
-  -H "Accept: application/vnd.github+json" \
-  -H "X-GitHub-Api-Version: 2022-11-28" \
-  'repos/{owner}/{repo}/rulesets' --input - <<< "$rules"
+echo "$rules" | gh api --method POST $headers "$repo_endpoint/rulesets" --input -
