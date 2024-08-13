@@ -67,6 +67,14 @@ cd <your-repo-name>
 npm install
 ```
 
+Repo settings are not transferred to your repo when you use the template or fork it, therefore you can edit the `scripts/reset-repo-settings.sh` script to your needs and run it to reset the repo settings.
+
+```bash
+npm run reset-repo
+```
+
+I recommend changing any settings again on the script file so they are written in there explicitly and can be restored after an experimentation.
+
 ### npm scripts
 
 There are a few npm scripts that you can use to maintain your monorepo:
