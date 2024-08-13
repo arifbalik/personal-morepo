@@ -10,7 +10,7 @@
     "reset-repo": "sh scripts/reset-repo-settings.sh",
     "commitlint": "commitlint --edit",
     "lint": "npx mega-linter-runner --fix",
-    "dev-build": "docker volume create monorepo && devcontainer build --workspace-folder . --config .devcontainer/generic/devcontainer.json",
+    "create-volume": "docker volume create monorepo",
     "dev": "devcontainer up --workspace-folder . --config .devcontainer/generic/devcontainer.json",
     "dev-shell": "devcontainer exec --workspace-folder . --config .devcontainer/generic/devcontainer.json"
   }
