@@ -72,6 +72,7 @@ npm install
 There are a few npm scripts that you can use to maintain your monorepo:
 
 - `npm run reset-repo` resets the repository to the default settings
+- `npm run update-from-template` updates the repository from the template (`arifbalik/monorepo`)
 - `npm run signingkey path/to/signingkey.pub` configures git to use ssh signing key to sign commits
 - `npm run commitlint` runs commitlint on the repository
 - `npm run lint` runs megalinter on the repository

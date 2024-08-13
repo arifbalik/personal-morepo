@@ -4,7 +4,9 @@
 
 # Common headers and endpoint
 headers="-H Accept:application/vnd.github+json -H X-GitHub-Api-Version:2022-11-28"
-repo_endpoint="repos/{owner}/{repo}"
+owner=$(gh api user | jq -r .login)
+repo=$(git config --get remote.origin.url | sed -E 's/.*\/([^/]+)\.git/\1/')
+repo_endpoint="repos/$owner/$repo"
 
 # Repository settings
 repo_settings='{
@@ -112,3 +114,9 @@ if [ -n "$ruleset_id" ]; then
 fi
 
 echo "$rules" | gh api --method POST $headers "$repo_endpoint/rulesets" --input -
+
+# Check if the remote 'template' exists, if not add it
+if ! git remote | grep -q '^template$'; then
+  git remote add template https://github.com/arifbalik/monorepo.git
+fi
+gh repo set-default "$owner/$repo"
