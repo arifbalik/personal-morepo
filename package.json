@@ -8,6 +8,7 @@
   },
   "scripts": {
     "reset-repo": "sh scripts/reset-repo-settings.sh",
+    "signingkey": "git config --global commit.gpgsign true && git config --global gpg.format ssh && git config --global user.signingkey",
     "commitlint": "commitlint --edit",
     "lint": "npx mega-linter-runner --fix",
     "create-volume": "docker volume create monorepo",
