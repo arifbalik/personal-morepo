@@ -18,7 +18,6 @@ RUN apt-get update && \
     gnupg=2.4.4-2ubuntu17  \
     gh=2.45.0-1ubuntu0.1 \
     jq=1.7.1-3build1 \
-    openssh-client=1:9.6p1-3ubuntu13.4 \
     nodejs npm && \
     rm -rf /var/lib/apt/lists/*
 
