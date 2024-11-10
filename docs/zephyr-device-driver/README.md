@@ -188,7 +188,7 @@ west update
 This will fetch all source code that is outside of the Zephyr repository but needed to build an application, like the `hal_stm32` and `mcuboot` repositories.
 
 > [!WARNING]
-> Zephyr version is `v3.7.0` at the time of writing this document and it has a a bug that has been patched by me but is not in the v3.7.0, therefore if you want to be where I was when this document is written, check out to the [`b5ae6fa34808080e0039dee4b59fea37f8e23f13`](https://github.com/arifbalik/zephyr/commit/b5ae6fa34808080e0039dee4b59fea37f8e23f13) hash of the `zephyr` repository, inside `zephyr/west.yml` file, or apply the patch yourself.
+> Zephyr version is `v3.7.0` at the time of writing this document and it has a a bug that has been patched by me but is not in the v3.7.0, therefore if you want to be where I was when this document is written, check out to the [`10fa1eab50ac54e41bf75ab0ad01daa4bd25ba13`](https://github.com/zephyrproject-rtos/zephyr/commit/10fa1eab50ac54e41bf75ab0ad01daa4bd25ba13) hash of the `zephyr` repository, inside `zephyr/west.yml` file, or apply the patch yourself.
 
 This may take some time and it will load a ton of modules we won't need, therefore I highly recommend using a T2 or T3 topology for your projects. Once the update is done, a similar file structure should appear in the workspace;
 
@@ -2678,6 +2678,5 @@ west twister -T tests/drivers/misc/stm32_tsc --device-testing --device-serial CO
 
 In this command we first select a specific test suite with `-T` flag, then we enable the device testing with `--device-testing` flag, and then we select the serial port with `--device-serial` flag and finally we select the board with `-p` flag.
 
-> ![NOTE]
+> [!NOTE]
 > A physical connection with a jumper between PA10 and PD2 should be made before running the tests.
-
