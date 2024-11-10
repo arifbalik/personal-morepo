@@ -148,6 +148,7 @@
 <li><a href="#integration-testing">Integration Testing</a>
 <ul>
 <li><a href="#what-to-test">What to Test?</a></li>
+<li><a href="#test-plan">Test Plan</a></li>
 <li><a href="#test-application">Test Application</a>
 <ul>
 <li><a href="#cmakeliststxt">CMakeLists.txt</a></li>
@@ -1192,7 +1193,7 @@
 <pre lang="dts" class="notranslate"><code class="notranslate">&amp;tsc {
   group1 {
     group = &lt;1&gt;;
-    use-as-shield;
+    use-as-shield;****
     channel-ios = &lt;2&gt;;
     sampling-io = &lt;1&gt;;
   };
@@ -2361,25 +2362,23 @@ I: input event: dev=tsc@40024000     SYN type=ef code=  2 value=1815</pre></div>
 <h3>Integration Testing</h3>
 <p>This step can be done at the beginning of the driver implementation to make sure the driver works as expected. This is called <a href="https://en.wikipedia.org/wiki/Test-driven_development" rel="nofollow">TDD</a> (Test Driven Development) and it is a good practice to write tests before writing the actual code. But for the sake of this document I'll write the tests here. These tests can also be used to test the further modifications to the driver to make sure there is no regression in the driver when a change is made.</p>
 <h4>What to Test?</h4>
-<p>There is two main options that can be tested in this driver. One is to test the driver API and its behavior, and the other is to test the actual register states for this peripheral, and see if it matches the device tree configuration.</p>
+<p>There are two main options that can be tested in this driver. One is to test the driver API and its behavior, and the other is to test the actual register states for this peripheral, and see if it matches the device tree configuration.</p>
 <p>Our initial tests kept interrupt enabled, but in the integration tests we should test with and without this feature; <code class="notranslate">CONFIG_STM32_TSC_INTERRUPT</code>.</p>
-<p>The next tests will cover the following scenarios;</p>
+<h4>Test Plan</h4>
+<p>Here I outline the simple test plan for this driver. This might seem not enough to some, but should cover most cases.</p>
 <ul>
-<li>
-<p>Test MMIO</p>
+<li>Test MMIO
 <ul>
 <li>Check if the registers are set correctly</li>
 </ul>
 </li>
-<li>
-<p>Test the driver API (interrupt)</p>
+<li>Test the driver API (interrupt)
 <ul>
 <li>Start the acquisition</li>
 <li>Test if input events are reported</li>
 </ul>
 </li>
-<li>
-<p>Test the driver API (polling)</p>
+<li>Test the driver API (polling)
 <ul>
 <li>Start the acquisition</li>
 <li>Poll for acquisition</li>
@@ -2388,7 +2387,7 @@ I: input event: dev=tsc@40024000     SYN type=ef code=  2 value=1815</pre></div>
 </li>
 </ul>
 <h4>Test Application</h4>
-<p>A test is just another application that can either run on the host or on the target. Only difference is the inclusion of the <code class="notranslate">ztest</code> library and the test functions with an additional <code class="notranslate">testcase.yml</code> file for the test runner (<a href="https://docs.zephyrproject.org/latest/develop/test/twister.html" rel="nofollow">twister</a>) to pick up the application as a test.</p>
+<p>A test application (or a test suite as Zephyr calls it) is just another application that can either run on the host or on the target. Only difference is the inclusion of the <code class="notranslate">ztest</code> library and the test functions with an additional <code class="notranslate">testcase.yml</code> file for the test runner (<a href="https://docs.zephyrproject.org/latest/develop/test/twister.html" rel="nofollow">twister</a>) to pick up the application as a test.</p>
 <p>I'll create a new application in the <code class="notranslate">tests/drivers/misc/stm32_tsc</code> directory and add my files there.</p>
 <h5>CMakeLists.txt</h5>
 <p>This is just a generic cmake file that used in any other application cmake file.</p>
@@ -2411,7 +2410,8 @@ CONFIG_INPUT_MODE_SYNCHRONOUS=y
 <h5>Device tree overlays</h5>
 <p>This devicetree modification is to make sure we use different values for the configuration than the reset values of the TSC peripheral, so that we can hit the parts of our code that sets the registers.</p>
 <p>This includes using <code class="notranslate">synced acquisition</code> as discussed in the <a href="#hardware-configuration">Hardware Configuration</a> section. This requires two different additional pin configurations, one for the sync input pin and the other one is to trigger the sync pin. In the following example I've used generic <a href="https://docs.zephyrproject.org/latest/build/dts/zephyr-user-node.html" rel="nofollow"><code class="notranslate">zephyr,user</code></a> node to define the trigger pin, which I arbitrarily chose to be <code class="notranslate">GPIOA 10</code> which is exposed in my development kit.</p>
-<p>And for the sync pin, I've used <code class="notranslate">PD2</code> which is also exposed in my development kit and gave its reference to the <code class="notranslate">pinctrl-0</code> property of the TSC node.</p>
+<p>And for the sync pin, I've used <code class="notranslate">PD2</code> but this is not an arbitrary pin and it has been chosen with the help of the <a href="https://www.st.com/resource/en/datasheet/stm32u083kc.pdf" rel="nofollow">MCU datasheet</a>. Luckily this pin is also exposed in my development kit.</p>
+<p>Since we are overwriting <code class="notranslate">pinctrl-0</code> property, we have to re-supply the previous channel pins, we do not have to re define them as they will be defined in the original <code class="notranslate">.dts</code> file.</p>
 <pre lang="devicetree" class="notranslate"><code class="notranslate">/* zephyr/tests/drivers/misc/stm32_tsc/boards/stm32u083c_dk.overlay */
 #include &lt;zephyr/dt-bindings/misc/stm32-tsc-defines.h&gt;
 
@@ -2702,8 +2702,45 @@ CONFIG_INPUT_MODE_SYNCHRONOUS=y
 <h4>Running the Tests</h4>
 <p>We will use the west extension commands to use twistter and run the tests.</p>
 <div class="highlight highlight-source-shell"><pre class="notranslate">west twister -T tests/drivers/misc/stm32_tsc --device-testing --device-serial COM4 -p stm32u083c_dk</pre></div>
-<p>In this command we first select a specific test suite with <code class="notranslate">-T</code> flag, then we enable the device testing with <code class="notranslate">--device-testing</code> flag, and then we select the serial port with <code class="notranslate">--device-serial</code> flag and finally we select the board with <code class="notranslate">-p</code> flag.</p>
+<p>In this command we first select a specific test suite with <code class="notranslate">-T</code> flag, then we enable the device testing with <code class="notranslate">--device-testing</code> flag, and then we select the serial port with <code class="notranslate">--device-serial</code> flag and finally we select the board with <code class="notranslate">-p</code> flag, which stands for platform.</p>
 <div class="markdown-alert markdown-alert-note"><p class="markdown-alert-title"><svg class="octicon octicon-info mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p><p>A physical connection with a jumper between PA10 and PD2 should be made before running the tests.</p>
-</div></article>
+</div>
+<p>Twister will upload this and read the output from the serial port and let us know how it went. But for the fun of it, we can connect to the serial port with a terminal emulator and see the output.</p>
+<div class="highlight highlight-source-shell"><pre class="notranslate">---- Opened the serial port COM4 ----
+<span class="pl-k">***</span> Booting Zephyr OS build 6aae5648ff4d <span class="pl-k">***</span>
+Running TESTSUITE stm32_tsc
+===================================================================
+START - test_1_device_ready
+ PASS - test_1_device_ready <span class="pl-k">in</span> 0.001 seconds
+===================================================================
+START - test_2_cr_reg
+ PASS - test_2_cr_reg <span class="pl-k">in</span> 0.001 seconds
+===================================================================
+START - test_3_group_registers
+ PASS - test_3_group_registers <span class="pl-k">in</span> 0.001 seconds
+===================================================================
+START - test_4_acquisition_polling
+ SKIP - test_4_acquisition_polling <span class="pl-k">in</span> 0.001 seconds
+===================================================================
+START - test_5_acquisition_interrupt
+ PASS - test_5_acquisition_interrupt <span class="pl-k">in</span> 0.201 seconds
+===================================================================
+TESTSUITE stm32_tsc succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [stm32_tsc]: pass = 4, fail = 0, skip = 1, total = 5 duration = 0.205 seconds
+ - PASS - [stm32_tsc.test_1_device_ready] duration = 0.001 seconds
+ - PASS - [stm32_tsc.test_2_cr_reg] duration = 0.001 seconds
+ - PASS - [stm32_tsc.test_3_group_registers] duration = 0.001 seconds
+ - SKIP - [stm32_tsc.test_4_acquisition_polling] duration = 0.001 seconds
+ - PASS - [stm32_tsc.test_5_acquisition_interrupt] duration = 0.201 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+RunID: 54191c69b895b72ac69c072ecf65e1d0
+PROJECT EXECUTION SUCCESSFUL</pre></div>
+<p>Looks like everything is working just fine. Perfect!</p></article>
 	</body>
 </html>

@@ -76,6 +76,7 @@ I'll not talk about some details and assume you have at least heard about Zephyr
     - [OSX](#osx)
   - [Integration Testing](#integration-testing)
     - [What to Test?](#what-to-test)
+    - [Test Plan](#test-plan)
     - [Test Application](#test-application)
       - [CMakeLists.txt](#cmakeliststxt)
       - [prj.conf](#prjconf)
@@ -808,7 +809,7 @@ We talked about the group logic in the [Understanding the Hardware](#understandi
 &tsc {
   group1 {
     group = <1>;
-    use-as-shield;
+    use-as-shield;****
     channel-ios = <2>;
     sampling-io = <1>;
   };
@@ -2272,19 +2273,19 @@ This step can be done at the beginning of the driver implementation to make sure
 
 #### What to Test?
 
-There is two main options that can be tested in this driver. One is to test the driver API and its behavior, and the other is to test the actual register states for this peripheral, and see if it matches the device tree configuration.
+There are two main options that can be tested in this driver. One is to test the driver API and its behavior, and the other is to test the actual register states for this peripheral, and see if it matches the device tree configuration.
 
 Our initial tests kept interrupt enabled, but in the integration tests we should test with and without this feature; `CONFIG_STM32_TSC_INTERRUPT`.
 
-The next tests will cover the following scenarios;
+#### Test Plan
+
+Here I outline the simple test plan for this driver. This might seem not enough to some, but should cover most cases.
 
 - Test MMIO
   - Check if the registers are set correctly
-
 - Test the driver API (interrupt)
   - Start the acquisition
   - Test if input events are reported
-
 - Test the driver API (polling)
   - Start the acquisition
   - Poll for acquisition
@@ -2292,7 +2293,7 @@ The next tests will cover the following scenarios;
 
 #### Test Application
 
-A test is just another application that can either run on the host or on the target. Only difference is the inclusion of the `ztest` library and the test functions with an additional `testcase.yml` file for the test runner ([twister](https://docs.zephyrproject.org/latest/develop/test/twister.html)) to pick up the application as a test.
+A test application (or a test suite as Zephyr calls it) is just another application that can either run on the host or on the target. Only difference is the inclusion of the `ztest` library and the test functions with an additional `testcase.yml` file for the test runner ([twister](https://docs.zephyrproject.org/latest/develop/test/twister.html)) to pick up the application as a test.
 
 I'll create a new application in the `tests/drivers/misc/stm32_tsc` directory and add my files there.
 
@@ -2330,7 +2331,9 @@ This devicetree modification is to make sure we use different values for the con
 
 This includes using `synced acquisition` as discussed in the [Hardware Configuration](#hardware-configuration) section. This requires two different additional pin configurations, one for the sync input pin and the other one is to trigger the sync pin. In the following example I've used generic [`zephyr,user`](https://docs.zephyrproject.org/latest/build/dts/zephyr-user-node.html) node to define the trigger pin, which I arbitrarily chose to be `GPIOA 10` which is exposed in my development kit.
 
-And for the sync pin, I've used `PD2` which is also exposed in my development kit and gave its reference to the `pinctrl-0` property of the TSC node.
+And for the sync pin, I've used `PD2` but this is not an arbitrary pin and it has been chosen with the help of the [MCU datasheet](https://www.st.com/resource/en/datasheet/stm32u083kc.pdf). Luckily this pin is also exposed in my development kit. 
+
+Since we are overwriting `pinctrl-0` property, we have to re-supply the previous channel pins, we do not have to re define them as they will be defined in the original `.dts` file.
 
 ```devicetree
 /* zephyr/tests/drivers/misc/stm32_tsc/boards/stm32u083c_dk.overlay */
@@ -2676,7 +2679,49 @@ We will use the west extension commands to use twistter and run the tests.
 west twister -T tests/drivers/misc/stm32_tsc --device-testing --device-serial COM4 -p stm32u083c_dk
 ```
 
-In this command we first select a specific test suite with `-T` flag, then we enable the device testing with `--device-testing` flag, and then we select the serial port with `--device-serial` flag and finally we select the board with `-p` flag.
+In this command we first select a specific test suite with `-T` flag, then we enable the device testing with `--device-testing` flag, and then we select the serial port with `--device-serial` flag and finally we select the board with `-p` flag, which stands for platform.
 
 > [!NOTE]
 > A physical connection with a jumper between PA10 and PD2 should be made before running the tests.
+
+Twister will upload this and read the output from the serial port and let us know how it went. But for the fun of it, we can connect to the serial port with a terminal emulator and see the output.
+
+```bash
+---- Opened the serial port COM4 ----
+*** Booting Zephyr OS build 6aae5648ff4d ***
+Running TESTSUITE stm32_tsc
+===================================================================
+START - test_1_device_ready
+ PASS - test_1_device_ready in 0.001 seconds
+===================================================================
+START - test_2_cr_reg
+ PASS - test_2_cr_reg in 0.001 seconds
+===================================================================
+START - test_3_group_registers
+ PASS - test_3_group_registers in 0.001 seconds
+===================================================================
+START - test_4_acquisition_polling
+ SKIP - test_4_acquisition_polling in 0.001 seconds
+===================================================================
+START - test_5_acquisition_interrupt
+ PASS - test_5_acquisition_interrupt in 0.201 seconds
+===================================================================
+TESTSUITE stm32_tsc succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [stm32_tsc]: pass = 4, fail = 0, skip = 1, total = 5 duration = 0.205 seconds
+ - PASS - [stm32_tsc.test_1_device_ready] duration = 0.001 seconds
+ - PASS - [stm32_tsc.test_2_cr_reg] duration = 0.001 seconds
+ - PASS - [stm32_tsc.test_3_group_registers] duration = 0.001 seconds
+ - SKIP - [stm32_tsc.test_4_acquisition_polling] duration = 0.001 seconds
+ - PASS - [stm32_tsc.test_5_acquisition_interrupt] duration = 0.201 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+RunID: 54191c69b895b72ac69c072ecf65e1d0
+PROJECT EXECUTION SUCCESSFUL
+```
+
+Looks like everything is working just fine. Perfect!
