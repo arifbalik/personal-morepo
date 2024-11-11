@@ -88,6 +88,7 @@ I'll not talk about some details and assume you have at least heard about Zephyr
       - [Test MMIO](#test-mmio)
       - [API Tests](#api-tests)
     - [Running the Tests](#running-the-tests)
+- [Wrapping Up](#wrapping-up)
 
 ## Introduction
 
@@ -2725,3 +2726,7 @@ PROJECT EXECUTION SUCCESSFUL
 ```
 
 Looks like everything is working just fine. Perfect!
+
+## Wrapping Up
+
+We've implemented the driver and tested it on the hardware. This is now complete as a driver but still not usable as is, in a future post I'll implement a driver that uses this driver to generate input events that are usable (like actual clicks), instead of using the capture value and putting it in the input subsystem, which is not the ideal use of this subsystem at the moment.
